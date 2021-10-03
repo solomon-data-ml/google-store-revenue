@@ -37,7 +37,7 @@ def index():
 
     
     
-def Preprocess(filename):
+def Preprocess(filename,isPredict=True):
 
     def convert_to_date(x):
         a= x
@@ -124,8 +124,6 @@ def Preprocess(filename):
         df["totals.transactions"] = pd.to_numeric(df["totals.transactions"])
     if "totals.transactionRevenue" in df.columns:
         df["totals.transactionRevenue"] = pd.to_numeric(df["totals.transactionRevenue"])
-    if "totals.totalTransactionRevenue" in df.columns:
-        df["totals.totalTransactionRevenue"] = pd.to_numeric(df["totals.totalTransactionRevenue"])
     if "totals.transactions" in df.columns:
         df["totals.transactions"].fillna(0.0, inplace=True)
     if "totals.transactionRevenue" in df.columns:
@@ -133,11 +131,17 @@ def Preprocess(filename):
     if "totals.totalTransactionRevenue" in df.columns:
         df["totals.totalTransactionRevenue"].fillna(0.0, inplace=True)
 
-    if "totals.totalTransactionRevenue" in df.columns:
+    if "visitId" in df.columns:
         df.drop('visitId', axis=1, inplace=True)
-    df.drop('totals.totalTransactionRevenue', axis=1, inplace=True)
+    if(isPredict):
+        if "totals.transactionRevenue" in df.columns:
+            df.drop('totals.transactionRevenue', axis=1, inplace=True)
+    else:
+        df['totals.transactionRevenue'] = np.log1p(df['totals.transactionRevenue'])
+        
+    
     df.drop('fullVisitorId', axis=1, inplace=True)
-    df['totals.transactionRevenue'] = np.log1p(df['totals.transactionRevenue'])
+    
     
     logging.info('75% Completed')
 
@@ -194,7 +198,7 @@ def model_predict(filename,lbl_encoder_container,model):
            'trafficSource.isTrueDirect',
             'visitstartAMPM']
     
-    df = Preprocess(filename)
+    df = Preprocess(filename,True)
     
     logging.info("Encoding Started")
     
@@ -223,11 +227,12 @@ def model_predict(filename,lbl_encoder_container,model):
     predict_output["PredictedLogRevenue"] = np.expm1(prediction)
     predict_output = predict_output.groupby("fullVisitorId")["PredictedLogRevenue"].sum().reset_index()
     predict_output.columns = ["fullVisitorId", "PredictedLogRevenue"]
-    predict_output["PredictedLogRevenue"] = np.log1p(predict_output["PredictedLogRevenue"])
+    #predict_output["PredictedLogRevenue"] = np.log1p(predict_output["PredictedLogRevenue"])
     predict_output["PredictedLogRevenue"] = predict_output["PredictedLogRevenue"].fillna(0.0)
-    predict_output.to_csv("predict_output_5_test.csv", index=False)
+    #predict_output.to_csv("predict_output_5_test.csv", index=False)
     logging.info("Completed output")
-
+    return round(sum(predict_output["PredictedLogRevenue"]),2)
+   
     
 
 def train(filename):
@@ -252,7 +257,7 @@ def train(filename):
            'trafficSource.isTrueDirect',
             'visitstartAMPM']
     
-    df = Preprocess(filename)
+    df = Preprocess(filename,False)
     
     logging.info("Splitting the data to Test and Train")
     
@@ -319,9 +324,9 @@ def upload():
     
         model = pickle.load(open(MODEL_PATH, 'rb'))
 
-        model_predict(file_path, lbl_encoder_container,model)
+        out = model_predict(file_path, lbl_encoder_container,model)
 
-        return "done"
+        return "The predicted revenue from the given customer is "+str(out)+ "$"
     return None
 
 
