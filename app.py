@@ -17,7 +17,7 @@ import logging
 logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',filename=os.path.realpath("gs.log"), level=logging.INFO,datefmt='%Y-%m-%d %H:%M:%S');
 
  # Flask utils
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template,send_from_directory
 from werkzeug.utils import secure_filename
  
 
@@ -328,6 +328,10 @@ def upload():
 
         return "The predicted revenue from the given customer is "+str(out)+ "$"
     return None
+
+@app.route('/downloadsample/<path:filename>', methods=['GET', 'POST'])
+def download_results(filename):
+    return send_from_directory('uploads', filename, as_attachment=True)
 
 
 if __name__ == '__main__':
