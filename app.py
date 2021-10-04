@@ -10,7 +10,7 @@ warnings.filterwarnings('ignore')
 from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
  
-from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 import pickle
 from sklearn.metrics import mean_squared_error
 import logging
@@ -19,14 +19,19 @@ logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',filename=os
  # Flask utils
 from flask import Flask, request, render_template,send_from_directory
 from werkzeug.utils import secure_filename
- 
+
+
 
 # Define a flask app
 app = Flask(__name__)
 
+from flask_cors import CORS
+CORS(app)
+ 
+
 # Model saved with Keras model.save()
-MODEL_PATH = 'googlestore_model.pkl'
-ENCODER_PATH='lbl_encoders.pkl'
+MODEL_PATH = 'xreg_model_v3.pkl'
+ENCODER_PATH='lbl_encoders_v2.pkl'
 
 @app.route('/', methods=['GET'])
 def index():
@@ -35,11 +40,7 @@ def index():
 
 
 
-    
-    
-def Preprocess(filename,isPredict=True):
-
-    def convert_to_date(x):
+def convert_to_date(x):
         a= x
         try:
             x = str(x)
@@ -50,33 +51,29 @@ def Preprocess(filename,isPredict=True):
 
         return x
 
-    def getAMPM(hour):
-        if hour>12:
-            return "PM"
-        else:
-            return "AM"
+def getAMPM(hour):
+    if hour>12:
+        return "PM"
+    else:
+        return "AM"
 
-    def json_string_array_fix(data):
-        data = ast.literal_eval(data)
-        if(len(data)>0):
-            return str(data[0])
-        else:
-            return ""
+def json_string_array_fix(data):
+    data = ast.literal_eval(data)
+    if(len(data)>0):
+        return str(data[0])
+    else:
+        return ""
     
+def Preprocess(filename,isPredict=True):
+
     logging.info('Preprocessing started')
     
     jsoncolumns = ["device", "geoNetwork", "totals", "trafficSource"]
-    
-     
-    
+
     df = pd.read_csv(filename, 
                      converters={column: json.loads for column in jsoncolumns}, 
                      dtype={"fullVisitorId": "str"})
   
-    
-   
-    
-    
     logging.info('5% Completed')
     
     for column in jsoncolumns: 
@@ -176,14 +173,14 @@ def Preprocess(filename,isPredict=True):
     return df 
     
 
-def model_predict(filename,lbl_encoder_container,model):
+def model_predict_deprecated(filename,lbl_encoder_container,model):
     
     numerical_features = ["totals.hits", "totals.pageviews", "visitNumber", "visitStartTime", 'totals.bounces',  'totals.newVisits'] 
     
     categorical_features = ['channelGrouping', 'socialEngagementType',  
             'device.browser', 'device.browserVersion',
            'device.browserSize', 'device.operatingSystem',
-           'device.operatingSystemVersion', 'device.isMobile',
+            'device.isMobile',
            'device.mobileDeviceBranding', 'device.mobileDeviceModel',
            'device.mobileInputSelector', 'device.mobileDeviceInfo',
            'device.mobileDeviceMarketingName', 'device.flashVersion',
@@ -232,30 +229,116 @@ def model_predict(filename,lbl_encoder_container,model):
     #predict_output.to_csv("predict_output_5_test.csv", index=False)
     logging.info("Completed output")
     return round(sum(predict_output["PredictedLogRevenue"]),2)
+
+
    
+def model_predict(filename,lbl_encoder_container,model,totalshits= 0,totalspageviews= 0,visitNumber= 0 ,visitStartTime=1535084481,totalsbounces=0,totalsnewVisits = 0,
+channelGrouping='Display',devicebrowser='Safari (in-app)',  deviceisMobile=True,
+devicedeviceCategory='mobile',geoNetworkcontinent='Americas',geoNetworksubContinent='Northern America', 
+geoNetworkcountry='United States', geoNetworkregion='not available in demo dataset',geoNetworkmetro='not available in demo dataset', geoNetworkcity='not available in demo dataset', 
+trafficSourcecampaign='(not set)',trafficSourcesource='dfa', trafficSourcemedium='cpm',trafficSourceisTrueDirect='False',date='01/01/2019'):
+    
+    print('channelGrouping - '  +  channelGrouping)
+    print('device.browser - '  +  devicebrowser) 
+    print('device.isMobile - '  +  deviceisMobile)
+    print('device.deviceCategory - '  +  devicedeviceCategory)
+    print('geoNetwork.continent - '  +  geoNetworkcontinent)
+    print('geoNetwork.subContinent - '  +  geoNetworksubContinent) 
+    print('geoNetwork.country - '  +  geoNetworkcountry)
+    print('geoNetwork.region - '  +  geoNetworkregion)
+    print('geoNetwork.metro - '  +  geoNetworkmetro)
+    print( 'geoNetwork.city - '  +  geoNetworkcity) 
+    print('trafficSource.campaign - '  +  trafficSourcecampaign)
+    print('trafficSource.source - '  +  trafficSourcesource)
+    print('trafficSource.medium - '  +  trafficSourcemedium)
+    print('trafficSource.isTrueDirect - '  +  trafficSourceisTrueDirect)
+    print('totals.hits - '  +  str(totalshits) )
+    print('totals.pageviews - '  +  str(totalspageviews))
+    print('visitNumber - '  +  str(visitNumber) )
+    print('totals.bounces - '  +str( totalsbounces))
+    print('totals.newVisits - '+ str(totalsnewVisits))
+    print('date - '  +  str(date))
+    print('visitStartTime - '  + str( visitStartTime))
+        
+     
+    numerical_features = ["totals.hits", "totals.pageviews", "visitNumber", "visitStartTime", 'totals.bounces',  'totals.newVisits'] 
+    
+    categorical_features = ['channelGrouping','device.browser','device.isMobile',
+                         'device.deviceCategory','geoNetwork.continent','geoNetwork.subContinent', 
+                         'geoNetwork.country', 'geoNetwork.region','geoNetwork.metro', 'geoNetwork.city', 
+                         'trafficSource.campaign','trafficSource.source', 'trafficSource.medium',
+                         'trafficSource.isTrueDirect','visitstartAMPM']
+    
+    
+    if not filename or filename.isspace():
+        data = [{ 'channelGrouping' : channelGrouping,
+                    'device.browser' : devicebrowser, 
+                    'device.isMobile' : deviceisMobile,
+                    'device.deviceCategory' : devicedeviceCategory,
+                    'geoNetwork.continent' : geoNetworkcontinent,
+                    'geoNetwork.subContinent' : geoNetworksubContinent, 
+                    'geoNetwork.country' : geoNetworkcountry,
+                    'geoNetwork.region' : geoNetworkregion,
+                    'geoNetwork.metro' : geoNetworkmetro,
+                    'geoNetwork.city' : geoNetworkcity, 
+                    'trafficSource.campaign' : trafficSourcecampaign,
+                    'trafficSource.source' : trafficSourcesource,
+                    'trafficSource.medium' : trafficSourcemedium,
+                    'trafficSource.isTrueDirect' : trafficSourceisTrueDirect,
+                    'totals.hits' : totalshits, 
+                    'totals.pageviews' : totalspageviews,
+                    'visitNumber' : visitNumber, 
+                    'totals.bounces' :totalsbounces,
+                    'totals.newVisits':totalsnewVisits,
+                    'date' : date,
+                    'visitStartTime' : visitStartTime}]
+    
+        # Creates DataFrame.
+        df = pd.DataFrame(data)
+        df['date'] = df.apply(lambda x: convert_to_date(x['date']),axis=1)
+        df['visitstarthour'] = (df['visitStartTime'].apply(lambda x: str(datetime.fromtimestamp(x).hour))).astype(int)
+        df['visitstartAMPM'] = df.apply(lambda x: getAMPM(x['visitstarthour']),axis=1)
+         
+    
+    else:
+        df = Preprocess(filename)
+    
+    logging.info("Encoding Started")
+    
+    for col in categorical_features:
+        logging.info("Encoding : "+col)
+        lbl_encoder = lbl_encoder_container[col]
+        le_dict = dict(zip(lbl_encoder.classes_, lbl_encoder.transform(lbl_encoder.classes_)))
+        df[col] = df[col].apply(lambda x: le_dict.get(x, 112233445566))
+        #df[col]  = lbl_encoder.transform(list(df[col].values.astype('str'))) - gives error while seeing new data
+        #Ref : https://stackoverflow.com/questions/21057621/sklearn-labelencoder-with-never-seen-before-values
+    df = df[categorical_features  + numerical_features] 
+    logging.info("Encoding Completed")
+    
+    
+    logging.info("Prediction Started")
+    prediction = model.predict(df)
+    logging.info("Prediction Completed")
+    
+    print('prediction is ',prediction)
+    
+    pred = prediction[0]
+    pred = 0.0 if pred < 0 else round(np.expm1(pred),2)
+    
+    logging.info("Predicted  - "+str(pred))
+    
+    return str(pred)
     
 
 def train(filename):
     
     numerical_features = ["totals.hits", "totals.pageviews", "visitNumber", "visitStartTime", 'totals.bounces',  'totals.newVisits'] 
     
-    categorical_features = ['channelGrouping', 'socialEngagementType',  
-            'device.browser', 'device.browserVersion',
-           'device.browserSize', 'device.operatingSystem',
-           'device.operatingSystemVersion', 'device.isMobile',
-           'device.mobileDeviceBranding', 'device.mobileDeviceModel',
-           'device.mobileInputSelector', 'device.mobileDeviceInfo',
-           'device.mobileDeviceMarketingName', 'device.flashVersion',
-           'device.language', 'device.screenColors', 'device.screenResolution',
-           'device.deviceCategory', 'geoNetwork.continent',
-           'geoNetwork.subContinent', 'geoNetwork.country', 'geoNetwork.region',
-           'geoNetwork.metro', 'geoNetwork.city', 'geoNetwork.cityId',
-           'geoNetwork.networkDomain', 'geoNetwork.latitude',
-           'geoNetwork.longitude', 'geoNetwork.networkLocation' , 'trafficSource.campaign',
-           'trafficSource.source', 'trafficSource.medium',
-           'trafficSource.adwordsClickInfo.criteriaParameters',
-           'trafficSource.isTrueDirect',
-            'visitstartAMPM']
+    categorical_features = ['channelGrouping','device.browser', 'device.operatingSystemVersion','device.isMobile',
+                         'device.deviceCategory','geoNetwork.continent','geoNetwork.subContinent', 
+                         'geoNetwork.country', 'geoNetwork.region','geoNetwork.metro', 'geoNetwork.city', 
+                         'trafficSource.campaign','trafficSource.source', 'trafficSource.medium',
+                         'trafficSource.isTrueDirect','visitstartAMPM']
     
     df = Preprocess(filename,False)
     
@@ -292,42 +375,51 @@ def train(filename):
     pickle.dump(lblencoders, open('lbl_encoders_test.pkl', 'wb'))
     
     logging.info("Model Training Started")
-    r_cfl=RandomForestRegressor(n_estimators=50,random_state=42,n_jobs=-1)
-    r_cfl.fit(X_train,y_train)
+    x_reg=XGBRegressor(n_estimators=10,nthread=-1)
+    x_reg.fit(X_train,y_train)
 
-    predict_y_train = r_cfl.predict(X_train)
+    predict_y_train = x_reg.predict(X_train)
     logging.info("The train loss is:",mean_squared_error(y_train,predict_y_train))
 
-    predict_y_test = r_cfl.predict(X_test)
+    predict_y_test = x_reg.predict(X_test)
     logging.info("The test loss is:",mean_squared_error(y_test,predict_y_test))
 
     
-    pickle.dump(r_cfl, open("googlestore_model_test.pkl", 'wb')) 
+    pickle.dump(x_reg, open("googlestore_model_test.pkl", 'wb')) 
     logging.info("Model Training Completed")
     
 
 @app.route('/predict', methods=['GET', 'POST'])
 def upload():
+    print('inside upload')
     if request.method == 'POST':
         # Get the file from post request
-        f = request.files['file']
-
-        # Save the file to ./uploads
-        #basepath = os.path.dirname(__file__)
-        file_path = os.path.join(
-            'uploads', secure_filename(f.filename))
-        f.save(file_path)
-        
-        logging.info('File uploaded to - '+file_path)
+  
+        print('inside post')
+        print(int(request.form.get('totalshits')))
+        print(request.form.get)
+        for ar in request.args.keys():
+            print('test')
+            print(ar)
+        logging.info('Request Parsed')
         
         lbl_encoder_container = pickle.load(open(ENCODER_PATH, 'rb'))
     
         model = pickle.load(open(MODEL_PATH, 'rb'))
+        
+        out = model_predict('',lbl_encoder_container,model,totalshits= int(request.form.get('totalshits')),totalspageviews= int(request.form.get('totalspageviews')),
+                                  visitNumber= int(request.form.get('visitNumber')) ,visitStartTime=int(request.form.get('visitStartTime')),totalsbounces=int(request.form.get('totalsbounces')),totalsnewVisits = int(request.form.get('totalsnewVisits')),
+                                  channelGrouping=str(request.form.get('channelGrouping')),devicebrowser=str(request.form.get('devicebrowser')),deviceisMobile=str(request.form.get('deviceisMobile')),
+                                  devicedeviceCategory=str(request.form.get('devicedeviceCategory')),geoNetworkcontinent=str(request.form.get('geoNetworkcontinent')),geoNetworksubContinent=str(request.form.get('geoNetworksubContinent')), 
+                                  geoNetworkcountry=str(request.form.get('geoNetworkcountry')), geoNetworkregion=str(request.form.get('geoNetworkregion')),geoNetworkmetro=str(request.form.get('geoNetworkmetro')),
+                                  geoNetworkcity=str(request.form.get('geoNetworkcity')), trafficSourcecampaign=str(request.form.get('trafficSourcecampaign')),trafficSourcesource=str(request.form.get('trafficSourcesource')), trafficSourcemedium=str(request.form.get('trafficSourcemedium')),
+                                  trafficSourceisTrueDirect=str(request.form.get('trafficSourceisTrueDirect')),date=str(request.form.get('date')))
 
-        out = model_predict(file_path, lbl_encoder_container,model)
+        
 
-        return "The predicted revenue from the given customer is "+str(out)+ "$"
-    return None
+
+        return str(out)
+    return str(out)
 
 @app.route('/downloadsample/<path:filename>', methods=['GET', 'POST'])
 def download_results(filename):
