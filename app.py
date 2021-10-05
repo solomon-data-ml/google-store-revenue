@@ -25,9 +25,6 @@ from werkzeug.utils import secure_filename
 # Define a flask app
 app = Flask(__name__)
 
-from flask_cors import CORS
-CORS(app)
-
 
 # Model saved with Keras model.save()
 MODEL_PATH = 'xreg_model_v3.pkl'
