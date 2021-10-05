@@ -18,43 +18,43 @@
 
 				<div class="wrap-input100 " >
 					<span class="label-input100">Date</span>
-					<input class="input100" type="text" id="date" name="date" placeholder="">
+					<input class="input100" type="text" id="date" value="01/01/2021" name="date" placeholder="">
 					<span class="focus-input100"></span>
 				</div>
 
 				<div class="wrap-input100 " >
 					<span class="label-input100">Total Hits</span>
-					<input class="input100" type="text" id="totalshits" name="totalshits" placeholder="">
+					<input class="input100" type="text" id="totalshits" value="1" name="totalshits" placeholder="">
 					<span class="focus-input100"></span>
 				</div>
 
 				<div class="wrap-input100 " >
 					<span class="label-input100">Total Page Views</span>
-					<input class="input100" type="text" id="totalspageviews" name="totalspageviews" placeholder="">
+					<input class="input100" type="text" id="totalspageviews" value="1" name="totalspageviews" placeholder="">
 					<span class="focus-input100"></span>
 				</div>
 
 				<div class="wrap-input100 " >
 					<span class="label-input100">Visit Number</span>
-					<input class="input100" type="text" id="visitNumber" name="visitNumber" placeholder="">
+					<input class="input100" type="text" id="visitNumber" value="1"  name="visitNumber" placeholder="">
 					<span class="focus-input100"></span>
 				</div>
 
 				<div class="wrap-input100 " >
 					<span class="label-input100">Visit Start Time</span>
-					<input class="input100" type="text" id="visitStartTime" name="visitStartTime" placeholder="">
+					<input class="input100" type="text" id="visitStartTime" value="1535084481"  name="visitStartTime" placeholder="">
 					<span class="focus-input100"></span>
 				</div>
 
 				<div class="wrap-input100 " >
 					<span class="label-input100">Total Bounces</span>
-					<input class="input100" type="text" id="totalsbounces" name="totalsbounces" placeholder="">
+					<input class="input100" type="text" id="totalsbounces"  value="1"   name="totalsbounces" placeholder="">
 					<span class="focus-input100"></span>
 				</div>
 
 				<div class="wrap-input100 " >
 					<span class="label-input100">Total New Visits</span>
-					<input class="input100" type="text" id="totalsnewVisits" name="totalsnewVisits" placeholder="">
+					<input class="input100" type="text" id="totalsnewVisits" value="1"  name="totalsnewVisits" placeholder="">
 					<span class="focus-input100"></span>
 				</div>
 
@@ -296,7 +296,7 @@
 		  var data = $('#gstoreform').serialize();
 
 		  var exist_response = $.ajax({type:"GET",url:"/predict",data:data,async: false}).responseText;
-			 
+
 		  $('#output').text("The Predicted Revenue for this customer is  : "+ exist_response + "$");
 			$('html, body').animate({scrollTop: '0px'}, 300);
 		});
