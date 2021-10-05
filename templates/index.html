@@ -11,7 +11,7 @@
 </style>
 	<div class="container-contact100">
 		<div class="wrap-contact100">
-		<form class="contact100-form validate-form" id="gstoreform"   >
+		<form class="contact100-form validate-form" id="gstoreform">
 
 				<span class="contact100-form-title" style="font-size:32px">Google Store Revenue Prediction</span>
 				<span class="contact100-form-title" id="output" style="color: #ff0000;" >&nbsp;</span>
@@ -293,10 +293,12 @@
 		$('#submit').click(function(event){
 			console.log('test')
 		  event.preventDefault();
+		  var data = $('#gstoreform').serialize();
+			console.log('getting form data ' ,data)
 		  var exist_response = $.ajax({type:"GET",url:"/predict",data:"gender=test",async: false}).responseText;
 			console.log('after ajax');
 			console.log(exist_response);
-		  $('#output').text("Your Predicted Year of Marriage : "+ exist_response + "$");
+		  $('#output').text("The Predicted Revenue for this customer is  : "+ exist_response + "$");
 			$('html, body').animate({scrollTop: '0px'}, 300);
 		});
 	</script>
