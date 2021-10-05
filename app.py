@@ -46,7 +46,7 @@ def convert_to_date(x):
             x = str(x)
             x = datetime.strptime(x, "%Y%m%d")
         except:
-            print(a)
+            pass
 
 
         return x
@@ -238,29 +238,6 @@ devicedeviceCategory='mobile',geoNetworkcontinent='Americas',geoNetworksubContin
 geoNetworkcountry='United States', geoNetworkregion='not available in demo dataset',geoNetworkmetro='not available in demo dataset', geoNetworkcity='not available in demo dataset',
 trafficSourcecampaign='(not set)',trafficSourcesource='dfa', trafficSourcemedium='cpm',trafficSourceisTrueDirect='False',date='01/01/2019'):
 
-    print('channelGrouping - '  +  channelGrouping)
-    print('device.browser - '  +  devicebrowser)
-    print('device.isMobile - '  +  deviceisMobile)
-    print('device.deviceCategory - '  +  devicedeviceCategory)
-    print('geoNetwork.continent - '  +  geoNetworkcontinent)
-    print('geoNetwork.subContinent - '  +  geoNetworksubContinent)
-    print('geoNetwork.country - '  +  geoNetworkcountry)
-    print('geoNetwork.region - '  +  geoNetworkregion)
-    print('geoNetwork.metro - '  +  geoNetworkmetro)
-    print( 'geoNetwork.city - '  +  geoNetworkcity)
-    print('trafficSource.campaign - '  +  trafficSourcecampaign)
-    print('trafficSource.source - '  +  trafficSourcesource)
-    print('trafficSource.medium - '  +  trafficSourcemedium)
-    print('trafficSource.isTrueDirect - '  +  trafficSourceisTrueDirect)
-    print('totals.hits - '  +  str(totalshits) )
-    print('totals.pageviews - '  +  str(totalspageviews))
-    print('visitNumber - '  +  str(visitNumber) )
-    print('totals.bounces - '  +str( totalsbounces))
-    print('totals.newVisits - '+ str(totalsnewVisits))
-    print('date - '  +  str(date))
-    print('visitStartTime - '  + str( visitStartTime))
-
-
     numerical_features = ["totals.hits", "totals.pageviews", "visitNumber", "visitStartTime", 'totals.bounces',  'totals.newVisits']
 
     categorical_features = ['channelGrouping','device.browser','device.isMobile',
@@ -320,7 +297,7 @@ trafficSourcecampaign='(not set)',trafficSourcesource='dfa', trafficSourcemedium
     prediction = model.predict(df)
     logging.info("Prediction Completed")
 
-    print('prediction is ',prediction)
+
 
     pred = prediction[0]
     pred = 0.0 if pred < 0 else round(np.expm1(pred),2)
@@ -391,12 +368,6 @@ def train(filename):
 
 @app.route('/predict', methods=['GET', 'POST'])
 def upload():
-    print('inside upload')
-
-    # Get the file from post request
-
-    print('inside post')
-
 
     logging.info('Request Parsed')
 
@@ -404,17 +375,34 @@ def upload():
 
     model = pickle.load(open(MODEL_PATH, 'rb'))
 
-    #out = model_predict('',lbl_encoder_container,model,totalshits=  request.form.get('totalshits'),totalspageviews= request.form.get('totalspageviews'),
-    #                          visitNumber=  request.form.get('visitNumber') ,visitStartTime=request.form.get('visitStartTime'),totalsbounces=request.form.get('totalsbounces'),totalsnewVisits = request.form.get('totalsnewVisits'),
-    #                          channelGrouping=str(request.form.get('channelGrouping')),devicebrowser=str(request.form.get('devicebrowser')),deviceisMobile=str(request.form.get('deviceisMobile')),
-    #                          devicedeviceCategory=str(request.form.get('devicedeviceCategory')),geoNetworkcontinent=str(request.form.get('geoNetworkcontinent')),geoNetworksubContinent=str(request.form.get('geoNetworksubContinent')),
-    #                          geoNetworkcountry=str(request.form.get('geoNetworkcountry')), geoNetworkregion=str(request.form.get('geoNetworkregion')),geoNetworkmetro=str(request.form.get('geoNetworkmetro')),
-    #                          geoNetworkcity=str(request.form.get('geoNetworkcity')), trafficSourcecampaign=str(request.form.get('trafficSourcecampaign')),trafficSourcesource=str(request.form.get('trafficSourcesource')), trafficSourcemedium=str(request.form.get('trafficSourcemedium')),
-    #                          trafficSourceisTrueDirect=str(request.form.get('trafficSourceisTrueDirect')),date=str(request.form.get('date')))
+    out = model_predict('',
+                        lbl_encoder_container,
+                        model,
+                        totalshits=  int(request.args['totalshits']),
+                        totalspageviews= int(request.args['totalspageviews']),
+                        visitNumber=  int(request.args['visitNumber']) ,
+                        visitStartTime=int(request.args['visitStartTime']),
+                        totalsbounces=int(request.args['totalsbounces']),
+                        totalsnewVisits = int(request.args['totalsnewVisits']),
+                        channelGrouping=str(request.args['channelGrouping']),
+                        devicebrowser=str(request.args['devicebrowser']),
+                        deviceisMobile=str(request.args['deviceisMobile']),
+                        devicedeviceCategory=str(request.args['devicedeviceCategory']),
+                        geoNetworkcontinent=str(request.args['geoNetworkcontinent']),
+                        geoNetworksubContinent=str(request.args['geoNetworksubContinent']),
+                        geoNetworkcountry=str(request.args['geoNetworkcountry']),
+                        geoNetworkregion=str(request.args['geoNetworkregion']),
+                        geoNetworkmetro=str(request.args['geoNetworkmetro']),
+                        geoNetworkcity=str(request.args['geoNetworkcity']),
+                        trafficSourcecampaign=str(request.args['trafficSourcecampaign']),
+                        trafficSourcesource=str(request.args['trafficSourcesource']),
+                        trafficSourcemedium=str(request.args['trafficSourcemedium']),
+                        trafficSourceisTrueDirect=str(request.args['trafficSourceisTrueDirect']),
+                        date=str(request.args['date']))
 
 
-    out = 3.5
-    print("Theee prediction is "+str(out))
+
+
     return str(out)
 
 
